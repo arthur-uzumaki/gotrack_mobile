@@ -26,6 +26,13 @@
       },
       "nursery": {
         "useSortedClasses": "info"
+      },
+      "complexity": {
+        "noUselessCatch": "off",
+        "noUselessFragments": "off"
+      },
+      "style": {
+        "noUnusedTemplateLiteral": "off"
       }
     }
   },
