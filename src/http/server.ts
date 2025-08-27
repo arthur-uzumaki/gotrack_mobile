@@ -20,7 +20,7 @@ import type {
   PostSessionsBody
 } from './schemas';
 
-import { customInstance } from '../lib/orval-mutator';
+import { customInstance } from './orval-mutator';
 export const getGoTrackApi = () => {
 const postRegisters = (
     postRegistersBody: PostRegistersBody,

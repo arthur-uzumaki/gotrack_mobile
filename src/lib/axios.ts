@@ -1,96 +1,60 @@
-import {
-  getRefreshToken,
-  getToken,
-  saveRefreshToken,
-  saveToken,
-} from '@/storage/token-storage'
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
-
-type FailedRequest = {
-  resolve: (token: string | null) => void
-  reject: (error: unknown) => void
-}
+import { getToken, removeToken, saveToken } from '@/storage/token-storage'
+import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: 'http://localhost:3333/',
+  baseURL: 'http://192.168.1.34:3333',
 })
 
 api.interceptors.request.use(
-  async config => {
-    const token = await getToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  async request => {
+    const tokens = await getToken()
+    if (tokens?.accessToken) {
+      request.headers.Authorization = ` ${tokens.accessToken}`
     }
-    return config
+    return request
   },
-  error => {
-    return Promise.reject(error)
-  }
+  error => Promise.reject(error)
 )
-
-let isRefreshing = false
-let failedQueue: FailedRequest[] = []
-
-const processQueue = (error: unknown, token: string | null = null) => {
-  // biome-ignore lint/complexity/noForEach: <explanation>
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
-  failedQueue = []
-}
 
 api.interceptors.response.use(
   response => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean
-    }
+  async error => {
+    const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise<string | null>((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        })
-          .then(token => {
-            if (token) {
-              originalRequest.headers.Authorization = `Bearer ${token}`
-            }
-            return api(originalRequest)
-          })
-          .catch(err => Promise.reject(err))
-      }
       originalRequest._retry = true
-      isRefreshing = true
 
       try {
-        const refreshToken = await getRefreshToken()
-        if (!refreshToken) {
+        const tokens = await getToken()
+
+        if (!tokens?.refreshToken) {
+          await removeToken()
           return Promise.reject(error)
         }
 
-        const response = await axios.post<{
-          accessToken: string
-          newRefreshToken: string
-        }>('http://localhost:3333/refresh-token', { refreshToken })
+        // 🚀 chama o refresh token no backend
+        const { data } = await axios.post(
+          'http://192.168.1.34:3333/refresh-token',
+          {
+            refreshToken: tokens.refreshToken,
+          }
+        )
 
-        const { accessToken: newAccessToken, newRefreshToken } = response.data
-        await saveToken(newAccessToken)
-        await saveRefreshToken(newRefreshToken)
-        api.defaults.headers.Authorization = `Bearer ${newAccessToken}`
-        processQueue(null, newAccessToken)
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+        // salva novos tokens
+        await saveToken({
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        })
+
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
         return api(originalRequest)
-      } catch (error) {
-        processQueue(error, null)
-        return Promise.reject(error)
-      } finally {
-        isRefreshing = false
+      } catch (refreshError) {
+        console.log('❌ Refresh token inválido, deslogando...')
+        await removeToken()
+        return Promise.reject(refreshError)
       }
     }
+
     return Promise.reject(error)
   }
 )

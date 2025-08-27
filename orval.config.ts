@@ -9,7 +9,7 @@ export default defineConfig({
       client: 'axios',
       override: {
         mutator: {
-          path: './src/lib/orval-mutator.ts',
+          path: './src/http/orval-mutator.ts',
           name: 'customInstance',
         },
       },

@@ -1,40 +1,40 @@
-import { env } from '@/env/env'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const TOKEN_STORAGE = env.EXPO_PUBLIC_ACCESS_TOKEN
-const REFRESH_TOKEN_KEY = env.EXPO_PUBLIC_REFRESH_TOKEN
+const TOKEN_STORAGE = 'authTokens'
+const REFRESH_TOKEN_KEY = 'refresh-token'
 
-async function saveToken(token: string) {
+async function saveToken(tokens: {
+  accessToken: string
+  refreshToken: string
+}) {
   try {
-    await AsyncStorage.setItem(TOKEN_STORAGE, token)
+    await AsyncStorage.setItem(TOKEN_STORAGE, JSON.stringify(tokens))
   } catch (error) {
     throw error
   }
 }
 
-async function getToken() {
+async function getToken(): Promise<{
+  accessToken: string
+  refreshToken: string
+} | null> {
   try {
-    const token = await AsyncStorage.getItem(TOKEN_STORAGE)
-    return token
+    const tokenStorage = await AsyncStorage.getItem(TOKEN_STORAGE)
+    if (!tokenStorage) {
+      return null
+    }
+    return JSON.parse(tokenStorage)
   } catch (error) {
     throw error
   }
 }
 
-async function saveRefreshToken(token: string) {
+async function removeToken() {
   try {
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token)
+    await AsyncStorage.removeItem(TOKEN_STORAGE)
   } catch (error) {
     throw error
   }
 }
 
-async function getRefreshToken() {
-  try {
-    return await AsyncStorage.getItem(REFRESH_TOKEN_KEY)
-  } catch (error) {
-    throw error
-  }
-}
-
-export { saveToken, getToken, saveRefreshToken, getRefreshToken }
+export { saveToken, getToken, removeToken }

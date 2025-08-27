@@ -1,4 +1,8 @@
-import React, { useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as LocalAuthentication from 'expo-local-authentication'
+import { useRouter } from 'expo-router'
+import { useEffect, useState, useTransition } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -9,95 +13,159 @@ import { MaterialIcons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
 import { styles } from './styles'
 
+import { useAuth } from '@/hooks/use-auth-hook'
 import { getToken } from '@/storage/token-storage'
+import Toast from 'react-native-toast-message'
+import { z } from 'zod/v4'
+
+const formSchema = z.object({
+  email: z.email('E-mail inválido').min(1, 'Precisa colocar todos os campos'),
+  password: z.string().min(1, 'Precisa colocar todos os campos'),
+})
+
+type FormSchema = z.infer<typeof formSchema>
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [biometricsAvailable, setBiometricsAvailable] = useState(false)
-  const [tokenExists, setTokenExists] = useState(true)
+  const [tokenExists, setTokenExists] = useState(false)
+  const { signin } = useAuth()
+  const route = useRouter()
 
-  // useEffect(() => {
-  //   checkBiometricsAvailability()
-  // }, [])
+  const [isPending, startTransition] = useTransition()
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormSchema>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    resolver: zodResolver(formSchema),
+  })
 
-  // useState(() => {
-  //   checkToken()
-  // }, [])
+  useEffect(() => {
+    async function checkToken() {
+      try {
+        const tokens = await getToken()
+        if (tokens?.accessToken) {
+          setTokenExists(true)
+        }
+      } catch (error) {
+        console.log(error)
+      } finally {
+        setTokenExists(false)
+      }
+    }
 
-  // async function checkToken() {
-  //   const token = await getToken()
-  //   if (token) {
-  //     setTokenExists(true)
-  //   }
-  // }
-  // const checkBiometricsAvailability = async () => {
-  //   try {
-  //     // Para usar com react-native-biometrics:
-  //     // const { available, biometryType } = await ReactNativeBiometrics.isSensorAvailable()
-  //     // setBiometricsAvailable(available)
-  //     setBiometricsAvailable(true) // Simulado como disponível
-  //   } catch (error) {
-  //     setBiometricsAvailable(false)
-  //   }
-  // }
+    checkToken()
+  }, [])
 
-  // const handleLogin = async () => {
-  //   if (!email || !password) {
-  //     Alert.alert('Erro', 'Preencha todos os campos')
-  //     return
-  //   }
+  async function handleBiometricSignin() {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync()
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync()
 
-  //   if (!email.includes('@')) {
-  //     Alert.alert('Erro', 'Digite um email válido')
-  //     return
-  //   }
+      if (!hasHardware || !isEnrolled) {
+        Toast.show({
+          type: 'error',
+          text1: 'Biometria indisponível',
+          text2:
+            'Seu dispositivo não suporta biometria ou não há dados cadastrados.',
+        })
+        return
+      }
 
-  //   setLoading(true)
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Autentique-se para entrar',
+        fallbackLabel: 'Use sua senha',
+        disableDeviceFallback: false,
+        cancelLabel: 'Cancelar',
+      })
 
-  //   try {
-  //     // Simulação de autenticação - substituir pela sua API
-  //     setTimeout(() => {
-  //       setLoading(false)
-  //       if (email === 'usuario@email.com' && password === '123456') {
-  //         onLogin({ email, name: 'Usuário Teste' })
-  //       } else {
-  //         Alert.alert('Erro', 'Email ou senha incorretos')
-  //       }
-  //     }, 2000)
-  //   } catch (error) {
-  //     setLoading(false)
-  //     Alert.alert('Erro', 'Falha na conexão. Tente novamente.')
-  //   }
-  // }
+      if (result.success) {
+        const tokens = await getToken()
+        if (tokens?.accessToken) {
+          route.navigate('/Dashboard')
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Token não encontrado',
+            text2: 'Faça login normalmente para registrar seu token.',
+          })
+        }
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Autenticação falhou',
+          text2: 'Não foi possível autenticar via biometria.',
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Ocorreu um erro ao tentar autenticar.',
+      })
+    }
+  }
 
-  // const handleBiometricLogin = async () => {
-  //   try {
-  //     // Para usar com react-native-biometrics:
-  //     // const { success } = await ReactNativeBiometrics.simplePrompt({
-  //     //   promptMessage: 'Confirme sua identidade'
-  //     // })
+  async function handleSignin({ email, password }: FormSchema) {
+    startTransition(async () => {
+      try {
+        await signin({ email, password })
+        return route.navigate('/Dashboard')
+      } catch (error) {
+        console.log(error)
 
-  //     Alert.alert(
-  //       'Autenticação Biométrica',
-  //       'Use sua impressão digital ou Face ID',
-  //       [
-  //         { text: 'Cancelar', style: 'cancel' },
-  //         {
-  //           text: 'Simular Sucesso',
-  //           onPress: () =>
-  //             onLogin({
-  //               email: 'biometric@user.com',
-  //               name: 'Usuário Biométrico',
-  //             }),
-  //         },
-  //       ]
-  //     )
-  //   } catch (error) {
-  //     Alert.alert('Erro', 'Falha na autenticação biométrica')
-  //   }
-  // }
+        if (error instanceof Error) {
+          if (error.message.includes('Network')) {
+            Toast.show({
+              type: 'error',
+              text1: 'Servidor indisponível',
+              text2:
+                'Não foi possível conectar ao servidor. Tente novamente mais tarde.',
+            })
+            return
+          }
+        }
+
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Senha ou e-mail incorretos.',
+        })
+      }
+    })
+  }
+
+  useEffect(() => {
+    async function checkTokenAndPermission() {
+      try {
+        const tokens = await getToken()
+        if (tokens?.accessToken) {
+          setTokenExists(true)
+
+          // Verifica disponibilidade da biometria
+          const hasHardware = await LocalAuthentication.hasHardwareAsync()
+          const isEnrolled = await LocalAuthentication.isEnrolledAsync()
+
+          if (!hasHardware || !isEnrolled) {
+            Toast.show({
+              type: 'info',
+              text1: 'Biometria não habilitada',
+              text2:
+                'Cadastre sua biometria no dispositivo para usar o login rápido.',
+            })
+          }
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    }
+
+    checkTokenAndPermission()
+  }, [])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,43 +182,71 @@ export default function Login() {
           </Text>
         </View>
 
-        {/* Formulário */}
         <Card>
           <>
-            <Field>
-              <Field.Label>Email</Field.Label>
-              <Field.Input
-                placeholder="Digite seu e-mail"
-                LeftIcon={
-                  <MaterialIcons name="email" size={24} color={'gray'} />
-                }
-              />
-            </Field>
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => {
+                return (
+                  <Field error={errors.email?.message}>
+                    <Field.Label>Email</Field.Label>
+                    <Field.Input
+                      keyboardType="email-address"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Digite seu e-mail"
+                      LeftIcon={
+                        <MaterialIcons name="email" size={24} color={'gray'} />
+                      }
+                    />
+                    <Field.Error />
+                  </Field>
+                )
+              }}
+            />
           </>
 
           <>
-            <Field>
-              <Field.Label>Senha</Field.Label>
-              <Field.Input
-                placeholder="******"
-                LeftIcon={
-                  <MaterialIcons name="lock" size={24} color={'gray'} />
-                }
-              />
-            </Field>
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <Field error={errors.password?.message}>
+                  <Field.Label>Senha</Field.Label>
+                  <Field.Input
+                    secureTextEntry
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    placeholder="******"
+                    LeftIcon={
+                      <MaterialIcons name="lock" size={24} color={'gray'} />
+                    }
+                  />
+                  <Field.Error />
+                </Field>
+              )}
+            />
           </>
 
-          <Button title="Entrar" variant="primary" onPress={() => {}} />
+          <Button
+            title="Entrar"
+            variant="primary"
+            onPress={handleSubmit(handleSignin)}
+          />
 
           {tokenExists && (
-            <TouchableOpacity style={styles.biometricContainer}>
+            <TouchableOpacity
+              style={styles.biometricContainer}
+              onPress={handleBiometricSignin}
+            >
               <MaterialIcons name="fingerprint" size={28} color="white" />
               <Text style={styles.biometricText}>Entrar com biometria</Text>
             </TouchableOpacity>
           )}
           <View style={styles.linkContainer}>
             <Text style={styles.linkDescription}>Não tem uma conta?</Text>
-            <TouchableOpacity disabled={loading}>
+            <TouchableOpacity disabled={isPending}>
               <Link href={'/Register'} style={styles.linkText}>
                 Cadastre-se aqui
               </Link>
