@@ -29,12 +29,12 @@ type FieldInputProps = TextInputProps & {
   RightIcon?: React.ReactNode
 }
 
-Field.Input = function FieldInput({
-  LeftIcon,
-  RightIcon,
-  style,
-  ...props
-}: FieldInputProps) {
+import { forwardRef } from 'react'
+
+Field.Input = forwardRef<TextInput, FieldInputProps>(function FieldInput(
+  { LeftIcon, RightIcon, style, ...props },
+  ref
+) {
   const { error } = useContext(FieldContext)
 
   return (
@@ -48,6 +48,7 @@ Field.Input = function FieldInput({
       {LeftIcon && <View style={styles.leftIcon}>{LeftIcon}</View>}
 
       <TextInput
+        ref={ref}
         style={[styles.textInput, style]}
         placeholderTextColor="#9ca3af"
         {...props}
@@ -56,7 +57,7 @@ Field.Input = function FieldInput({
       {RightIcon && <View style={styles.rightIcon}>{RightIcon}</View>}
     </View>
   )
-}
+})
 
 Field.Error = function FieldError() {
   const { error } = useContext(FieldContext)

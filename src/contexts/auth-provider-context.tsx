@@ -1,5 +1,5 @@
 import { getGoTrackApi } from '@/http/server'
-import { saveToken } from '@/storage/token-storage'
+import { getToken, removeToken, saveToken } from '@/storage/token-storage'
 import { useRouter } from 'expo-router'
 import { type ReactNode, createContext, useEffect, useState } from 'react'
 
@@ -42,6 +42,7 @@ export function AuthContextProvider({ children }: AuthProvider) {
 
   async function signin({ email, password }: SigninProps) {
     try {
+      await removeToken()
       const response = await api.postSessions({
         email,
         password,
@@ -50,6 +51,9 @@ export function AuthContextProvider({ children }: AuthProvider) {
       const { accessToken, refreshToken } = response
 
       await saveToken({ accessToken, refreshToken })
+      const userResponse = await api.getMe()
+      setUser(userResponse.user)
+      router.replace('/Dashboard')
     } catch (error) {
       throw error
     }
@@ -57,12 +61,14 @@ export function AuthContextProvider({ children }: AuthProvider) {
 
   async function signup({ name, email, password, avatarUrl }: SignupProps) {
     try {
-      await api.postRegisters({
+      const response = await api.postRegisters({
         email,
         name,
         password,
         avatarUrl,
       })
+
+      console.log(response.userId)
     } catch (error) {
       throw error
     }
@@ -72,6 +78,24 @@ export function AuthContextProvider({ children }: AuthProvider) {
     setUser(null)
     router.replace('/Login')
   }
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const tokens = await getToken()
+        console.log(tokens?.accessToken)
+
+        if (tokens?.accessToken) {
+          const response = await getGoTrackApi().getMe()
+          setUser(response.user)
+          console.log(response.user)
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, logout, signin, signup }}>
