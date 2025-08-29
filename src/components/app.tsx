@@ -179,14 +179,6 @@ const App = () => {
     </View>
   )
 
-  const ProgressBar = ({ progress }: { progress: number }) => (
-    <View style={styles.progressContainer}>
-      <View
-        style={[styles.progressBar, { width: `${Math.min(progress, 100)}%` }]}
-      />
-    </View>
-  )
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />

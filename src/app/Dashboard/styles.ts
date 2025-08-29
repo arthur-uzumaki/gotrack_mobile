@@ -28,4 +28,16 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  headerNavigation: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  headerNavigationTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
 })
