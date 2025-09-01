@@ -2,12 +2,14 @@ import { getToken, removeToken, saveToken } from '@/storage/token-storage'
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: 'http://192.168.1.34:3333',
+  baseURL: 'http://192.168.10.133:3333',
 })
 
 api.interceptors.request.use(
   async request => {
     const tokens = await getToken()
+    console.log(tokens)
+
     if (tokens?.accessToken) {
       request.headers.Authorization = ` ${tokens.accessToken}`
     }
@@ -26,21 +28,23 @@ api.interceptors.response.use(
 
       try {
         const tokens = await getToken()
+        console.log('refresh', tokens)
 
         if (!tokens?.refreshToken) {
           await removeToken()
           return Promise.reject(error)
         }
 
-        // 🚀 chama o refresh token no backend
         const { data } = await axios.post(
           'http://192.168.1.34:3333/refresh-token',
-          {
-            refreshToken: tokens.refreshToken,
-          }
+          { refreshToken: tokens.refreshToken }
         )
 
-        // salva novos tokens
+        if (!data?.accessToken || !data?.refreshToken) {
+          await removeToken()
+          return Promise.reject(error)
+        }
+
         await saveToken({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,

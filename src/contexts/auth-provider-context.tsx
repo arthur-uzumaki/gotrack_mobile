@@ -75,7 +75,6 @@ export function AuthContextProvider({ children }: AuthProvider) {
   }
 
   async function logout() {
-    setUser(null)
     router.replace('/Login')
   }
 
@@ -83,12 +82,10 @@ export function AuthContextProvider({ children }: AuthProvider) {
     async function fetchProfile() {
       try {
         const tokens = await getToken()
-        console.log(tokens?.accessToken)
 
         if (tokens?.accessToken) {
           const response = await getGoTrackApi().getMe()
           setUser(response.user)
-          console.log(response.user)
         }
       } catch (error) {
         console.log(error)

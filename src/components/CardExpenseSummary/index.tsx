@@ -20,6 +20,22 @@ export function CardExpenseSummary({
   label = 'Resumo',
   isLoading = false,
 }: CardExpenseSummaryProps) {
+  function getValueFontSize(value: string) {
+    if (value.length <= 8) {
+      return 24
+    }
+    if (value.length <= 10) {
+      return 20
+    }
+    if (value.length <= 12) {
+      return 18
+    }
+
+    return 16
+  }
+
+  const formattedValue = formateCurrency(data.total || 0)
+  const dynamicFontSize = getValueFontSize(formattedValue)
   return (
     <View style={styles.summaryCard}>
       {isLoading ? (
@@ -27,7 +43,14 @@ export function CardExpenseSummary({
       ) : (
         <>
           <Text style={styles.cardLabel}>{label}</Text>
-          <Text style={styles.cardValue}>{formateCurrency(data.total)}</Text>
+          <Text
+            style={[styles.cardValue, { fontSize: dynamicFontSize }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {formattedValue}
+          </Text>
           <Text style={styles.cardSubtext}>
             🚗 {data.count} {data.count === 1 ? 'corrida' : 'corridas'}
           </Text>

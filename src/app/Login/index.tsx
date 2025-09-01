@@ -135,7 +135,7 @@ export default function Login() {
     }
   }
 
-  async function handleSignin({ email, password }: FormSchema) {
+  function handleSignin({ email, password }: FormSchema) {
     startTransition(async () => {
       try {
         await signin({ email, password })

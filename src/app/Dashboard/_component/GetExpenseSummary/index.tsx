@@ -2,25 +2,13 @@ import {
   CardExpenseSummary,
   type GetExpensesSummary200SummaryItem,
 } from '@/components/CardExpenseSummary'
-import { getGoTrackApi } from '@/http/server'
-import { getCurrentMonthDates, getLastMonthDates } from '@/utils/date'
-import { useEffect, useState } from 'react'
+import { useExpensesContext } from '@/contexts/expenses-context'
 import { Text, View } from 'react-native'
 import { styles } from './styles'
 
-interface SummaryData {
-  currentMonth: GetExpensesSummary200SummaryItem | null
-  lastMonth: GetExpensesSummary200SummaryItem | null
-}
-
 export function GetExpenseSummary() {
-  const [summaryData, setSummaryData] = useState<SummaryData>({
-    currentMonth: null,
-    lastMonth: null,
-  })
-
-  const [isLoadingGetExpenseSummary, setIsLoadingGetExpenseSummary] =
-    useState(true)
+  const { currentSummary, lastSummary, isLoadingCurrent, isLoadingLast } =
+    useExpensesContext()
 
   function getMonthName(monthOffset = 0) {
     const now = new Date()
@@ -28,45 +16,13 @@ export function GetExpenseSummary() {
     return month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   }
 
-  useEffect(() => {
-    async function fetchSummaries() {
-      try {
-        setIsLoadingGetExpenseSummary(true)
-        const currentMonthDates = getCurrentMonthDates()
-        const lastMonthDates = getLastMonthDates()
-
-        const [currentMonthResult, lastMonthResult] = await Promise.all([
-          getGoTrackApi().getExpensesSummary({
-            month: currentMonthDates.month,
-            year: currentMonthDates.year,
-          }),
-          getGoTrackApi().getExpensesSummary({
-            month: lastMonthDates.month,
-            year: lastMonthDates.year,
-          }),
-        ])
-
-        setSummaryData({
-          currentMonth: currentMonthResult.summary?.[0] || null,
-          lastMonth: lastMonthResult.summary?.[0] || null,
-        })
-      } catch (error) {
-        console.log(error)
-      } finally {
-        setIsLoadingGetExpenseSummary(false)
-      }
-    }
-
-    fetchSummaries()
-  }, [])
-
   return (
     <>
-      {summaryData.currentMonth ? (
+      {currentSummary ? (
         <CardExpenseSummary
-          isLoading={isLoadingGetExpenseSummary}
+          isLoading={isLoadingCurrent}
           label={`${getMonthName(0)}`}
-          data={summaryData.currentMonth}
+          data={currentSummary}
         />
       ) : (
         <View style={styles.noDataCard}>
@@ -74,11 +30,11 @@ export function GetExpenseSummary() {
         </View>
       )}
 
-      {summaryData.lastMonth ? (
+      {lastSummary ? (
         <CardExpenseSummary
-          isLoading={isLoadingGetExpenseSummary}
+          isLoading={isLoadingLast}
           label={`${getMonthName(-1)}`}
-          data={summaryData.lastMonth}
+          data={lastSummary}
         />
       ) : (
         <View style={styles.noDataCard}>

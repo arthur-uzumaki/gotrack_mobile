@@ -1,15 +1,20 @@
 import { ExpenseList } from '@/components/ExpenseList'
-import { useExpenses } from '@/hooks/use-expenses'
+import { useExpensesContext } from '@/contexts/expenses-context'
 export function CurrentMonthExpenses() {
-  const { data, hasMore, isLoading, isLoadingMore, loadMore } =
-    useExpenses('current')
+  const {
+    currentMonth,
+    isLoadingCurrent,
+    isLoadingMoreCurrent,
+    loadMoreCurrent,
+    hasMoreCurrent,
+  } = useExpensesContext()
   return (
     <ExpenseList
-      isLoading={isLoading}
-      isLoadingMore={isLoadingMore}
-      data={data}
-      onLoadMore={loadMore}
-      hasMore={hasMore}
+      data={currentMonth}
+      isLoading={isLoadingCurrent}
+      isLoadingMore={isLoadingMoreCurrent}
+      onLoadMore={loadMoreCurrent}
+      hasMore={hasMoreCurrent}
       emptyText="Nenhuma corrida registrada neste mês"
     />
   )

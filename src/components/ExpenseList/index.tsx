@@ -1,4 +1,3 @@
-import React from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 
 import type { GetExpenses200ExpensesItem } from '@/http/schemas'
@@ -48,7 +47,7 @@ export function ExpenseList({
       ) : (
         <FlatList
           data={data}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id.toString()}
           renderItem={({ item }) => <ExpenseItem expense={item} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={[
