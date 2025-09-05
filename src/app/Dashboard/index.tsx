@@ -20,11 +20,13 @@ export default function Dashboard() {
       <View style={styles.headerAvatar}>
         <Link href={'/Profile'}>
           <View style={styles.userInfo}>
-            <Image
-              source={{ uri: user?.avatarUrl }}
-              style={styles.avatar}
-              alt="Avatar do usuário"
-            />
+            {user?.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <MaterialIcons name="person" size={60} color="#94a3b8" />
+              </View>
+            )}
             <View style={styles.greeting}>
               <Text style={styles.greetingText}>Olá,</Text>
               <Text style={styles.userName}>{user?.name}</Text>

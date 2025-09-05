@@ -207,4 +207,10 @@ export const styles = StyleSheet.create({
   saveButton: {
     flex: 1,
   },
+  avatarPlaceholder: {
+    flex: 1,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })
